@@ -1,2 +1,2 @@
 # covid-dash
-covid dash final proj
+[Hosted here](https://songgo1.github.io/covid-dash/)
