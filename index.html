@@ -19,7 +19,7 @@
 import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@0.85.1/build/stlite.js"
 mount(
   {
-    requirements: ["plotly"],
+    requirements: ["pandas", "numpy", "plotly"],
     entrypoint: "streamlit_app.py",
     files: {
 "streamlit_app.py": `import pandas as pd
@@ -98,7 +98,7 @@ st.title("Welcome to the 140.628 COVID Dashboard!")
 st.write("""
 
 This app allows you to see the daily or cumulative case counts of COVID cases by country.
-This data was collected by the [Center for Systems Science and Engineering (CSSE)](https://github.com/CSSEGISandData/COVID-19/tree/master) at Johns Hopkins University. \\
+This data was collected by the [Center for Systems Science and Engineering (CSSE)](https://github.com/CSSEGISandData/COVID-19/tree/master) at Johns Hopkins University. \\\\
 It contains global case counts from  **1/22/20 - 3/9/23**.   
 
 Data can be accessed [here.](https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series)
@@ -146,7 +146,7 @@ with col2:
                 max_value=max_d,
                 format="MM.DD.YYYY",
             )
-            st.write(f'Selected date: {selected_date_end.strftime("%m/%d/%Y")}')
+        st.write(f'Selected date: {selected_date_end.strftime("%m/%d/%Y")}')
 
     if option == 'Cumulative':
         selected_start = st.date_input("Select start date",
@@ -169,7 +169,7 @@ with col2:
         selected_start_date = min(selected_start, selected_end)
         selected_date_end = max(selected_start, selected_end)
         st.write(f'Selected start date: {selected_start_date.strftime("%m/%d/%Y")}')
-        st.write(f'Selected date: {selected_date_end.strftime("%m/%d/%Y")}')
+        st.write(f'Selected end date: {selected_date_end.strftime("%m/%d/%Y")}')
 
 #bulid the df for barchart and do cumsum on combined if cumulative
 selected_count, combined = choose_countries(long, cont_combined, country)
