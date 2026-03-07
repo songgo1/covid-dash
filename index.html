@@ -175,14 +175,15 @@ with col2:
 selected_count, combined = choose_countries(long, cont_combined, country)
 selected = choose_dates(selected_count, selected_date_end)
 
+
 if option == 'Daily':
     result = daily_counts(selected)
-    title = f'Daily counts for {selected_date_end}'
+    title = f'Daily counts for {selected_date_end.strftime("%m/%d/%Y")}'
     markers = selected_date_end
 
 if option == 'Cumulative':
     result = cumsum_counts(selected)
-    title = f'Cumulative case counts for {selected_start_date} to {selected_date_end}'
+    title = f'Cumulative case counts for {selected_start_date.strftime("%m/%d/%Y")} to {selected_date_end.strftime("%m/%d/%Y")}'
     start_marker = selected_start_date
     end_marker = selected_date_end
     combined = combined.cumsum()
