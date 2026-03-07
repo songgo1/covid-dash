@@ -146,7 +146,7 @@ with col2:
                 max_value=max_d,
                 format="MM.DD.YYYY",
             )
-        st.write("Selected date:", selected_date_end)
+            st.write(f'Selected date: {selected_date_end.strftime("%m/%d/%Y")}')
 
     if option == 'Cumulative':
         selected_start = st.date_input("Select start date",
@@ -168,8 +168,8 @@ with col2:
         ## handles edge case if user picks end day that is before start
         selected_start_date = min(selected_start, selected_end)
         selected_date_end = max(selected_start, selected_end)
-        st.write("Selected start date:", selected_start_date)
-        st.write("Selected end date:", selected_date_end)
+        st.write(f'Selected start date: {selected_start_date.strftime("%m/%d/%Y")}')
+        st.write(f'Selected date: {selected_date_end.strftime("%m/%d/%Y")}')
 
 #bulid the df for barchart and do cumsum on combined if cumulative
 selected_count, combined = choose_countries(long, cont_combined, country)
