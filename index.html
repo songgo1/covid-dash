@@ -99,7 +99,7 @@ st.write("""
 
 This app allows you to see the daily or cumulative case counts of COVID cases by country.
 This data was collected by the [Center for Systems Science and Engineering (CSSE)](https://github.com/CSSEGISandData/COVID-19/tree/master) at Johns Hopkins University. \\
-It contains global case counts from  **2020/1/22 - 2023/3/9**.   
+It contains global case counts from  **1/22/20 - 3/9/23**.   
 
 Data can be accessed [here.](https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series)
 
@@ -213,7 +213,7 @@ fig_overall = px.line(combined,
                x="date",
                y="value",
                color = 'Country/Region',
-               title=f'{option} Counts for 2020/1/22 - 2023/3/9',
+               title=f'{option} Counts for 1/22/20 - 3/9/23',
                )
 
 fig_overall.update_xaxes(dtick="M12", tickformat="%Y", showgrid=True)
