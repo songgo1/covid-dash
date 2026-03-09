@@ -19,22 +19,21 @@
 import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@0.85.1/build/stlite.js"
 mount(
   {
-    requirements: ["pandas", "numpy", "plotly"],
+    requirements: ["pandas", "plotly"],
     entrypoint: "streamlit_app.py",
     files: {
 "streamlit_app.py": `import pandas as pd
-import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
 
 #import and tidy data
-# data = pd.read_csv("time_series_covid19_confirmed_global.csv")
-
 url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
 
 data = pd.read_csv(url)
+
+#edit 03/09/2026: THIS DATA IS CUMULATIVE COUNTS!!!!!!!!!!!!!!!!!!!
 
 data['Province/State'] = data['Province/State'].fillna(data['Country/Region'])
 
@@ -42,34 +41,37 @@ data['Province/State'] = data['Province/State'].fillna(data['Country/Region'])
 coords = data[['Province/State','Country/Region', 'Lat', 'Long']].copy()
 data.drop(['Lat', 'Long'], inplace = True, axis =1)
 
+#convert to DAILY counts
+data = data.set_index(['Province/State', 'Country/Region'])
+first_col = data.iloc[:, 0].copy()  #save first column (since nothing to sub from)
+data = data.diff(axis=1).fillna(0)
+data.iloc[:, 0] = first_col  #restore first column
+data.reset_index(inplace = True)
+
 #group data by country and save df for line plot
 cont_combined = data.copy()
 cont_combined = cont_combined.drop(columns=['Province/State'])
 cont_combined = cont_combined.groupby(['Country/Region']).sum().transpose()
 
-#melt for plotly
+#melt for plotly barchart
 long = pd.melt(data, id_vars=['Province/State', 'Country/Region',])
 
 #convert to datetime for easy subsetting
 long['date'] = pd.to_datetime(long['variable'], format="%m/%d/%y")
 
-
 #default/inputs
 min_d = long['date'].min()
 max_d = long['date'].max()
 countries_list = list(data['Country/Region'].unique())
-selected_start_date = min_d
-selected_date_end = max_d
-
 
 #functions to make new df from inputs 
-def choose_countries(long_data, wide_data,countries):
+def choose_countries(long_data, wide_data, countries):
     selected_cont = long_data.copy()
     selected_cont = selected_cont[selected_cont['Country/Region'].isin(countries)].copy() #df for barchart
-    wide_select = wide_data[countries].copy()
+    wide_select = wide_data[countries].copy() #df for line plot
     return selected_cont, wide_select
 
-def choose_dates(data, end_date, start_date = min_d):
+def choose_dates(data, end_date, start_date):
     selected_dates = data.copy()
     start_date = pd.to_datetime(start_date) #cast datetime to pandas datetime
     end_date = pd.to_datetime(end_date) #cast datetime to pandas datetime
@@ -81,7 +83,6 @@ def choose_dates(data, end_date, start_date = min_d):
 def daily_counts(data):
     end = data['date'].max()
     d = data[data['date'] == end].copy()
-    d.rename(columns={'date': 'end'})
     return d
 
 def cumsum_counts(data):
@@ -113,6 +114,14 @@ Data can be accessed [here.](https://github.com/CSSEGISandData/COVID-19/tree/mas
     - Barchart is split by states/provinces/dependencies for each country if data is available.  
 5. **Explore the map** - hover over markers to see location-specific counts for selected countries.
 Size of dot corresponds to count. 
+
+Note: 
+- In some instances, the daily count number is reported as negative. The JHU CSSE COVID-19 Data is
+reported as cumulative counts and daily counts were back calculated. In the event that the cumulative 
+number of cases was downgraded from the day before, the listed daily count is negative and will not
+be shown on the map. 
+- If multiple countries are selected, bars or map markers might appear small if there
+is a wide range in data. 
 
 """)
          
@@ -148,6 +157,10 @@ with col2:
             )
         st.write(f'Selected date: {selected_date_end.strftime("%m/%d/%Y")}')
 
+        selected_start_date = min_d
+
+        
+
     if option == 'Cumulative':
         selected_start = st.date_input("Select start date",
             value=min_d,
@@ -173,19 +186,15 @@ with col2:
 
 #bulid the df for barchart and do cumsum on combined if cumulative
 selected_count, combined = choose_countries(long, cont_combined, country)
-selected = choose_dates(selected_count, selected_date_end)
-
+selected = choose_dates(selected_count, selected_date_end, selected_start_date)
 
 if option == 'Daily':
     result = daily_counts(selected)
     title = f'Daily counts for {selected_date_end.strftime("%m/%d/%Y")}'
-    markers = selected_date_end
 
 if option == 'Cumulative':
     result = cumsum_counts(selected)
     title = f'Cumulative case counts for {selected_start_date.strftime("%m/%d/%Y")} to {selected_date_end.strftime("%m/%d/%Y")}'
-    start_marker = selected_start_date
-    end_marker = selected_date_end
     combined = combined.cumsum()
     
              
@@ -217,30 +226,45 @@ fig_overall = px.line(combined,
                title=f'{option} Counts for 1/22/20 - 3/9/23',
                )
 
-fig_overall.update_xaxes(dtick="M12", tickformat="%Y", showgrid=True)
 
 if option == 'Daily':
+    #group by country for results markers
+    results_markers  = result.drop(columns=['Location', 'variable'])
+    results_markers = results_markers.groupby(['Country/Region', 'date']).sum()
+    results_markers.reset_index(inplace = True) 
+
     fig_overall.add_trace(
         go.Scatter(
             mode='markers',
-            x=result['date'],
-            y=result['value'], marker_size = 20,
-            name="Selected dates",
+            x=results_markers['date'],
+            y=results_markers['value'],
+            marker=dict(size=20),
+            name="Selected date",
             ),
             )
 
 if option == 'Cumulative':
+    #group by country for results markers
+    results_markers  = result.drop(columns=['Location'])
+    results_markers = results_markers.groupby(['Country/Region', 'end', 'start']).sum()
+    results_markers.reset_index(inplace = True) 
+
+    start_dates = results_markers['start'].tolist()
+    start_data = combined[combined['date'].isin(start_dates)]
+
+    end_dates = results_markers['end'].tolist()
+    end_data = combined[combined['date'].isin(end_dates)]
+
     fig_overall.add_trace(
         go.Scatter(
             mode='markers',
-            x=result['end'],
-            y=result['value'],
+            x=end_data['date'],
+            y=end_data['value'],
             marker=dict(size=20),
             name="Selected end",
-            ),
-            )
-    start_dates = result['start'].tolist()
-    start_data = combined[combined['date'].isin(start_dates)]
+        ),
+        )
+    
     
     fig_overall.add_trace(
         go.Scatter(
@@ -250,14 +274,14 @@ if option == 'Cumulative':
             marker=dict(size=20),
             name="Selected start",
         ),
-    )
+        )
 
 
 st.plotly_chart(fig_overall,
                     use_container_width=True)
 
 #add map 
-st.write(f"Hover over markers to see counts.")
+st.write("Hover over markers to see counts.")
 
 coords_sub = coords[coords['Country/Region'].isin(country)].copy()
 
@@ -266,6 +290,9 @@ coords_sub = coords_sub.merge(
     left_on=['Province/State', 'Country/Region'], 
     right_on=['Location', 'Country/Region']
 )
+
+#remove out zero/negative values before mapping
+coords_sub = coords_sub[coords_sub['value'] > 0]
 
 
 fig_map = px.scatter_geo(
@@ -278,7 +305,9 @@ fig_map = px.scatter_geo(
     size="value",
 )
 
-st.plotly_chart(fig_map, use_container_width=True)`,
+st.plotly_chart(fig_map, use_container_width=True)
+
+st.write("Reference data: Dong E, Du H, Gardner L. An interactive web-based dashboard to track COVID-19 in real time. Lancet Inf Dis. 20(5):533-534. doi: 10.1016/S1473-3099(20)30120-1")`,
 
 },
   },
