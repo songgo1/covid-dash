@@ -8,4 +8,4 @@ This applet allows users to inspect the daily or cumulative case counts for coun
 Interactive graphics were generated using plotly graphic library. Applet was built using Streamlit and html was generated using StliteSharing. 
 
 Limitations
-Some daily counts may appear negative due to retroactive corrections in cumulative reporting from source data. [See here for information on data collection and corrections.]([https://github.com/CSSEGISandData/COVID-19/tree/master](https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data)
+Some daily counts may appear negative due to retroactive corrections in cumulative reporting from source data. [See here for information on data collection and corrections.](https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data)
