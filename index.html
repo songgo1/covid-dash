@@ -19,7 +19,7 @@
 import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@0.85.1/build/stlite.js"
 mount(
   {
-    requirements: ["pandas", "plotly"],
+    requirements: ["pandas", "plotly", "streamlit"],
     entrypoint: "streamlit_app.py",
     files: {
 "streamlit_app.py": `import pandas as pd
@@ -40,6 +40,26 @@ data['Province/State'] = data['Province/State'].fillna(data['Country/Region'])
 #save coords for map 
 coords = data[['Province/State','Country/Region', 'Lat', 'Long']].copy()
 data.drop(['Lat', 'Long'], inplace = True, axis =1)
+
+#add us state data
+##remove us from original df
+coords = coords[~coords['Country/Region'].isin(['US'])].copy()
+data = data[~data['Country/Region'].isin(['US'])].copy()
+
+url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
+
+us_data = pd.read_csv(url)
+
+#unify names
+us_data.rename(columns={'Province_State': 'Province/State', 'Country_Region': 'Country/Region', 'Long_': 'Long'}, inplace=True)
+#get coords then drop unnecessary col
+us_coords = us_data[['Province/State','Country/Region', 'Lat', 'Long']].copy()
+us_data.drop(['Lat', 'Long','UID', 'iso2', 'iso3', 'code3', 'FIPS', 'Admin2','Combined_Key', ], inplace = True, axis =1)
+
+#add to df
+coords = pd.concat([coords, us_coords])
+data = pd.concat([data, us_data])
+
 
 #convert to DAILY counts
 data = data.set_index(['Province/State', 'Country/Region'])
@@ -99,7 +119,7 @@ st.title("Welcome to the 140.628 COVID Dashboard!")
 st.write("""
 
 This app allows you to see the daily or cumulative case counts of COVID cases by country.
-This data was collected by the [Center for Systems Science and Engineering (CSSE)](https://github.com/CSSEGISandData/COVID-19/tree/master) at Johns Hopkins University. \\\\
+This data was collected by the [Center for Systems Science and Engineering (CSSE)](https://github.com/CSSEGISandData/COVID-19) at Johns Hopkins University. \\\\
 It contains global case counts from  **1/22/20 - 3/9/23**.   
 
 Data can be accessed [here.](https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series)
@@ -115,13 +135,10 @@ Data can be accessed [here.](https://github.com/CSSEGISandData/COVID-19/tree/mas
 5. **Explore the map** - hover over markers to see location-specific counts for selected countries.
 Size of dot corresponds to count. 
 
-Note: 
-- In some instances, the daily count number is reported as negative. The JHU CSSE COVID-19 Data is
+Note: In some instances, the daily count number is reported as negative. The JHU CSSE COVID-19 Data is
 reported as cumulative counts and daily counts were back calculated. In the event that the cumulative 
 number of cases was downgraded from the day before, the listed daily count is negative and will not
 be shown on the map. 
-- If multiple countries are selected, bars or map markers might appear small if there
-is a wide range in data. 
 
 """)
          
