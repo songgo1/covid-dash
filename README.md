@@ -8,4 +8,4 @@ This applet allows users to inspect the daily or cumulative case counts for coun
 Interactive graphics were generated using plotly graphic library. Applet was built using Streamlit and html was generated using StliteSharing. 
 
 Limitations
-United States data split by state is available from the CSSEGISandData COVID-19 online repository, but was not used for this applet. Some daily counts may appear negative due to retroactive corrections in cumulative reporting from source data.
+Some daily counts may appear negative due to retroactive corrections in cumulative reporting from source data.
