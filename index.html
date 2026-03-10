@@ -19,7 +19,7 @@
 import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@0.85.1/build/stlite.js"
 mount(
   {
-    requirements: ["pandas", "plotly", "streamlit"],
+    requirements: ["pandas", "numpy", "plotly", "folium", "streamlit", "streamlit-folium"],
     entrypoint: "streamlit_app.py",
     files: {
 "streamlit_app.py": `import pandas as pd
@@ -50,11 +50,38 @@ url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_cov
 
 us_data = pd.read_csv(url)
 
-#unify names
 us_data.rename(columns={'Province_State': 'Province/State', 'Country_Region': 'Country/Region', 'Long_': 'Long'}, inplace=True)
-#get coords then drop unnecessary col
-us_coords = us_data[['Province/State','Country/Region', 'Lat', 'Long']].copy()
+
 us_data.drop(['Lat', 'Long','UID', 'iso2', 'iso3', 'code3', 'FIPS', 'Admin2','Combined_Key', ], inplace = True, axis =1)
+
+us_data = us_data.groupby(['Province/State','Country/Region']).sum()
+us_data.reset_index(inplace = True)
+
+#remove cruise ships
+us_data = us_data[~us_data['Province/State'].isin(['Grand Princess', 'Diamond Princess'])]
+
+#get us state data
+us_coords = pd.read_csv("US_GeoCode.csv")
+us_coords.rename(columns={'Name': 'Province/State', 'latitude': 'Lat', 'longitude': 'Long'}, inplace=True)
+us_coords.drop(['state&teritory', ], inplace = True, axis =1)
+us_data = us_data.merge(us_coords, how="left", on="Province/State")
+
+#fill in empties (doesnt fill for some reason?)
+us_data.loc[us_data['Province/State']=='American Samoa', 'Lat'] =  -14.270972
+us_data.loc[us_data['Province/State']=='American Samoa', 'Long'] =  -170.132217
+
+us_data.loc[us_data['Province/State']=='Guam', 'Lat'] =  13.444304
+us_data.loc[us_data['Province/State']=='Guam', 'Long'] =  144.793731
+
+us_data.loc[us_data['Province/State']=='Northern Mariana Islands', 'Lat'] =  17.33083
+us_data.loc[us_data['Province/State']=='Northern Mariana Islands', 'Long'] = 145.38469
+
+us_data.loc[us_data['Province/State']=='Virgin Islands', 'Lat'] =  18.335765
+us_data.loc[us_data['Province/State']=='Virgin Islands', 'Long'] = -64.896335
+
+us_coords = us_data[['Province/State','Country/Region', 'Lat', 'Long']].copy()
+us_data.drop(['Lat', 'Long'], inplace = True, axis =1)
+
 
 #add to df
 coords = pd.concat([coords, us_coords])
@@ -324,7 +351,74 @@ fig_map = px.scatter_geo(
 
 st.plotly_chart(fig_map, use_container_width=True)
 
-st.write("Reference data: Dong E, Du H, Gardner L. An interactive web-based dashboard to track COVID-19 in real time. Lancet Inf Dis. 20(5):533-534. doi: 10.1016/S1473-3099(20)30120-1")`,
+st.write("""
+Reference data: 
+Dong E, Du H, Gardner L. An interactive web-based dashboard to track COVID-19 in real time. Lancet Inf Dis. 20(5):533-534. doi: 10.1016/S1473-3099(20)30120-1
+Maheshwar Tenneri. (2023). US State and Territory Latitude and Longitude data [Data set]. Kaggle. https://doi.org/10.34740/KAGGLE/DSV/5428244
+         """)`,
+"US_GeoCode.csv": `state&teritory,latitude,longitude,Name
+AK,63.588753,-154.493062,Alaska
+AL,32.318231,-86.902298,Alabama
+AR,35.20105,-91.831833,Arkansas
+AZ,34.048928,-111.093731,Arizona
+CA,36.778261,-119.417932,California
+CO,39.550051,-105.782067,Colorado
+CT,41.603221,-73.087749,Connecticut
+DC,38.905985,-77.033418,District of Columbia
+DE,38.910832,-75.52767,Delaware
+FL,27.664827,-81.515754,Florida
+GA,32.157435,-82.907123,Georgia
+HI,19.898682,-155.665857,Hawaii
+IA,41.878003,-93.097702,Iowa
+ID,44.068202,-114.742041,Idaho
+IL,40.633125,-89.398528,Illinois
+IN,40.551217,-85.602364,Indiana
+KS,39.011902,-98.484246,Kansas
+KY,37.839333,-84.270018,Kentucky
+LA,31.244823,-92.145024,Louisiana
+MA,42.407211,-71.382437,Massachusetts
+MD,39.045755,-76.641271,Maryland
+ME,45.253783,-69.445469,Maine
+MI,44.314844,-85.602364,Michigan
+MN,46.729553,-94.6859,Minnesota
+MO,37.964253,-91.831833,Missouri
+MS,32.354668,-89.398528,Mississippi
+MT,46.879682,-110.362566,Montana
+NC,35.759573,-79.0193,North Carolina
+ND,47.551493,-101.002012,North Dakota
+NE,41.492537,-99.901813,Nebraska
+NH,43.193852,-71.572395,New Hampshire
+NJ,40.058324,-74.405661,New Jersey
+NM,34.97273,-105.032363,New Mexico
+NV,38.80261,-116.419389,Nevada
+NY,43.299428,-74.217933,New York
+OH,40.417287,-82.907123,Ohio
+OK,35.007752,-97.092877,Oklahoma
+OR,43.804133,-120.554201,Oregon
+PA,41.203322,-77.194525,Pennsylvania
+PR,18.220833,-66.590149,Puerto Rico
+RI,41.580095,-71.477429,Rhode Island
+SC,33.836081,-81.163725,South Carolina
+SD,43.969515,-99.901813,South Dakota
+TN,35.517491,-86.580447,Tennessee
+TX,31.968599,-99.901813,Texas
+UT,39.32098,-111.093731,Utah
+VA,37.431573,-78.656894,Virginia
+VT,44.558803,-72.577841,Vermont
+WA,47.751074,-120.740139,Washington
+WI,43.78444,-88.787868,Wisconsin
+WV,38.597626,-80.454903,West Virginia
+WY,43.075968,-107.290284,Wyoming
+AS,-14.270972,-170.132217, American Samoa
+DC,38.942142,-77.025955, District of Columbia
+FM,6.9167,158.1833, Federated States of Micronesia
+GU,13.444304,144.793732, Guam
+MH,6.0683936,171.989379, Marshall Islands
+MP,15.183333,145.75, Northern Mariana Islands
+PW,7.51498,134.58252, Palau
+PR,-66.10572,18.46633, Puerto Rico
+VI,34.297878,-83.824066, US Virgin Islands
+`,
 
 },
   },
